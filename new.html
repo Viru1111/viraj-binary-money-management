@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Binary Money Management Plan</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0b1020;
+      color: #fff;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: 22px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    label {
+      font-size: 14px;
+    }
+
+    input[type="number"] {
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: none;
+      margin-right: 8px;
+      width: 160px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-main {
+      padding: 8px 14px;
+      background: #ffb400;
+      color: #000;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .section-title {
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .steps-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .step-btn {
+      background: #20263a;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 6px;
+      min-width: 80px;
+      text-align: center;
+      transition: background 0.2s, transform 0.1s;
+      font-size: 14px;
+    }
+
+    .step-btn:hover {
+      background: #ffb400;
+      color: #000;
+      transform: translateY(-1px);
+    }
+
+    .level-box {
+      border: 1px solid #252b3f;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+      background: #121629;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #bbb;
+      margin-top: 6px;
+    }
+
+    .level3-message {
+      padding: 10px 0;
+      font-size: 14px;
+      color: #ffb400;
+      white-space: pre-line; /* line breaks allow */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Binary Trading Money Management</h1>
+
+    <!-- Capital input -->
+    <div>
+      <label for="capital">Capital enter karein:</label>
+      <input type="number" id="capital" placeholder="e.g. 2000" />
+      <button class="btn-main" id="generateBtn">Generate Steps</button>
+    </div>
+    <div class="note">
+      Saare steps tumhare capital ka fixed % honge (plan ke ratios ke hisaab se).
+    </div>
+
+    <!-- Level 1 steps -->
+    <div class="level-box">
+      <div class="section-title">Level 1 Steps</div>
+      <div id="level1" class="steps-wrapper"></div>
+    </div>
+
+    <!-- Level 2 steps -->
+    <div class="level-box">
+      <div class="section-title">Level 2 Steps</div>
+      <div id="level2" class="steps-wrapper"></div>
+    </div>
+
+    <!-- Level 3 steps -->
+    <div class="level-box">
+      <div class="section-title">Level 3 Steps</div>
+      <div id="level3" class="steps-wrapper"></div>
+    </div>
+  </div>
+
+  <script>
+    // Base capital (2000) jiske hisaab se original numbers diye the
+    const BASE_CAPITAL = 2000;
+    const toPercent = (amount) => amount / BASE_CAPITAL;
+
+    // Level 1 original: 84, 117, 164, 230, 322, 451, 632
+    const level1Percents = [
+      toPercent(84),
+      toPercent(117),
+      toPercent(164),
+      toPercent(230),
+      toPercent(322),
+      toPercent(451),
+      toPercent(632),
+    ];
+
+    // Children of 5th step (322): 105, 147, 205, 288, 403, 564
+    const children322Percents = [
+      toPercent(105),
+      toPercent(147),
+      toPercent(205),
+      toPercent(288),
+      toPercent(403),
+      toPercent(564),
+    ];
+
+    // Children of 6th step (451): 90, 126, 176, 246, 345, 484
+    const children451Percents = [
+      toPercent(90),
+      toPercent(126),
+      toPercent(176),
+      toPercent(246),
+      toPercent(345),
+      toPercent(484),
+    ];
+
+    // Children of 7th step (632): 110, 154, 215, 301, 422
+    const children632Percents = [
+      toPercent(110),
+      toPercent(154),
+      toPercent(215),
+      toPercent(301),
+      toPercent(422),
+    ];
+
+    // 6th step ke Level 3 ke liye common: 105, 147, 205, 288, 403, 564
+    const thirdLevelCommonPercents = children322Percents.slice();
+
+    // Level 1 index -> Level 2 percentages
+    // index: 0..6  (4=5th, 5=6th, 6=7th)
+    const level1ChildrenPercentMap = {
+      4: children322Percents, // 5th step (322)
+      5: children451Percents, // 6th step (451)
+      6: children632Percents, // 7th step (632)
+    };
+
+    function amountFromPercent(percent, capital) {
+      return Math.round(percent * capital);
+    }
+
+    function buildAmountArray(percentArray, capital) {
+      return percentArray.map((p) => amountFromPercent(p, capital));
+    }
+
+    function renderStepsFromPercents(percentArray, capital, containerId, level, parentIndex = null) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      const amountArray = buildAmountArray(percentArray, capital);
+
+      amountArray.forEach((value, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "step-btn";
+        btn.textContent = value;
+
+        btn.dataset.value = value;
+        btn.dataset.index = idx;
+        btn.dataset.level = level;
+        if (parentIndex !== null) {
+          btn.dataset.parentIndex = parentIndex;
+        }
+
+        container.appendChild(btn);
+      });
+    }
+
+    let currentCapital = BASE_CAPITAL;
+
+    function generateAllLevels() {
+      renderStepsFromPercents(level1Percents, currentCapital, "level1", 1);
+      document.getElementById("level2").innerHTML = "";
+      document.getElementById("level3").innerHTML = "";
+    }
+
+    document.getElementById("generateBtn").addEventListener("click", () => {
+      const val = parseFloat(document.getElementById("capital").value);
+      if (!val || val <= 0) {
+        alert("Please valid capital enter karein.");
+        return;
+      }
+      currentCapital = val;
+      generateAllLevels();
+    });
+
+    // Page load par default 2000 capital se
+    generateAllLevels();
+
+    // LEVEL 1 -> LEVEL 2
+    document.getElementById("level1").addEventListener("click", (e) => {
+      const btn = e.target.closest(".step-btn");
+      if (!btn) return;
+
+      const index = parseInt(btn.dataset.index, 10); // 0..6
+      const childPercents = level1ChildrenPercentMap[index];
+
+      if (childPercents) {
+        renderStepsFromPercents(childPercents, currentCapital, "level2", 2, index);
+        document.getElementById("level3").innerHTML = "";
+      } else {
+        document.getElementById("level2").innerHTML = "";
+        document.getElementById("level3").innerHTML = "";
+      }
+    });
+
+    // LEVEL 2 -> LEVEL 3
+    document.getElementById("level2").addEventListener("click", (e) => {
+      const btn = e.target.closest(".step-btn");
+      if (!btn) return;
+
+      const parentIndex = parseInt(btn.dataset.parentIndex, 10); // 4,5,6
+      const level3Container = document.getElementById("level3");
+
+      // Sirf 6th step (index 5, amount 451) ke liye Level 3 buttons
+      if (parentIndex === 5) {
+        renderStepsFromPercents(
+          thirdLevelCommonPercents,
+          currentCapital,
+          "level3",
+          3,
+          parentIndex
+        );
+      }
+      // 7th step (index 6, amount 632) ke Level 2 ke kisi bhi button pe:
+      // Level 3 me text message show hoga
+      else if (parentIndex === 6) {
+        level3Container.innerHTML = "";
+        const msg = document.createElement("div");
+        msg.className = "level3-message";
+        msg.innerText =
+          "STOP ( you loose 25% capital )\n" +
+          "dont worry recover in next 2 sessions";
+        level3Container.appendChild(msg);
+      }
+      // 5th step (index 4, amount 322) ke liye Level 3 nahi
+      else {
+        level3Container.innerHTML = "";
+      }
+    });
+
+    // Level 3 click (optional)
+    document.getElementById("level3").addEventListener("click", (e) => {
+      const btn = e.target.closest(".step-btn");
+      if (!btn) return;
+      const value = parseInt(btn.dataset.value, 10);
+      console.log("Level 3 clicked:", value);
+    });
+  </script>
+</body>
+</html>
